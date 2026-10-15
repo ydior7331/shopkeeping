@@ -1,6 +1,18 @@
-# Kosárár – Mi mennyibe kerül a boltban?
+# Kosárár: mi mennyibe kerül a boltban?
 
 Árösszehasonlító a GVH Árfigyelő napi adataiból. Kereshetsz a termékek között, megnézheted az ártörténetüket és azt, hogy mi drágult. A kosaradról megmutatja, melyik boltláncnál jön ki a legolcsóbban.
+
+Élő oldal: https://shop.ydr1337.xyz
+
+## Funkciók
+
+- **Bolt-élmény:** a kezdőképernyőn ki kell húzni a bevásárlókocsit, utána nyílik a bolt.
+- **Kategóriák:** az Árfigyelő 161 kategóriája 12 főcsoportba rendezve.
+- **Keresés:** ékezet nélkül is működik, például a `turo` megtalálja a túrót.
+- **Termékkártyák:** képpel, a legolcsóbb árral és lánccal, egységárral, és azzal, hogy hány láncban kapható.
+- **Terméklap:** lánconkénti árak, boltszám és ártörténet-grafikon.
+- **Mi drágult?:** a legnagyobb drágulások és árcsökkenések az elmúlt 1, 7, 30 vagy 90 napban.
+- **Kosár:** a böngészőben marad meg. Megmutatja a végösszeget láncokra bontva, és hogy melyik lánc árulja az összes terméket.
 
 ## Felépítés
 
@@ -21,14 +33,28 @@
 - `POST /api/basket`: `{ items: [{ id, qty }] }`, a kosár végösszege láncokra bontva
 - `GET /api/changes?days=7&dir=up|down`: mi drágult, mi lett olcsóbb
 
+A GET válaszokat a Worker 15 percig gyorsítótárban tartja, hogy kevesebb D1-olvasás legyen.
+
 ### Adatmodell
 
 - `prices`: a mai ár lánconként (termék × lánc), és hogy mióta érvényes
 - `price_history`: lezárt időszakok; ide csak akkor kerül sor, ha változott az ár
 - `price_changes`: napi változásnapló a „Mi drágult?” nézethez
 - `products`: a terméklista, a legolcsóbb ár és lánc előre kiszámolva
+- `imports`: melyik napot mikor töltöttük be
 
-A D1 ingyenes kerete napi 100 ezer sorírás. Az első import kb. 50 ezer sort ír, utána naponta csak a változások kerülnek be.
+A D1 ingyenes kerete napi 100 ezer sorírás. Az első import kb. 50 ezer sort írt, utána naponta csak a változások kerülnek be.
+
+## Adatforrás
+
+- **Árak:** `https://cdnarfigyeloprodweu.azureedge.net/excel/arfigyelo_napi_termekadatok.xlsx`. Naponta egyszer frissül, a munkalap nevében benne van a nap dátuma.
+- **Termékképek:** a GVH CDN-jéről, a termék azonosítója alapján: `https://cdnarfigyeloprodweu.azureedge.net/images/product-image-{EAN}.jpg`. A termékek kb. 98%-ához van kép, a többinél egy kosárikon jelenik meg.
+- **Azonosítók:** a legtöbb termék EAN-t kap, de az Aldi, a Lidl, a Penny és a Spar egy részénél saját azonosító áll, például `aldi-106896`.
+- **Kimaradó láncok:** ha egy lánc egy nap teljesen kimarad a fájlból, az árai megmaradnak, és nem számítanak eltűntnek.
+
+## Miért GitHub Actions?
+
+A Workers ingyenes csomagjában egy időzített futás csak 10 ms CPU-időt kaphat, a kibontott napi fájl pedig kb. 10,5 MB XML. Ezért a GitHub Actions dolgozza fel, és a D1 REST API-n keresztül írja be.
 
 ## Helyi futtatás
 
@@ -41,6 +67,14 @@ npm run preview
 ```
 
 Ezután az oldal a http://localhost:8787 címen érhető el. Frontendfejlesztéshez az `npm run dev:api` és az `npm run dev` párhuzamosan is futtatható. Ilyenkor a Vite a `/api` kéréseket a Workerhez továbbítja.
+
+Az importáló kapcsolói:
+
+- `--file <útvonal>`: helyi xlsx a letöltés helyett
+- `--fresh`: üres adatbázisból indul, nem olvassa a D1-et
+- `--out <fájl>`: a változásokat SQL-fájlba írja ahelyett, hogy végrehajtaná
+- `--dry-run`: csak kiírja, mi változna
+- `--force`: akkor is lefut, ha az aznapi adat már be van töltve
 
 ## Telepítés
 
