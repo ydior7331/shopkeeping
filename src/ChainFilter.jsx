@@ -1,6 +1,6 @@
 import { chainColor } from './format.js';
 
-export default function ChainFilter({ chains, selected, onChange }) {
+export default function ChainFilter({ chains, selected, onChange, matchAll }) {
   const set = new Set(selected);
   const all = set.size === 0;
 
@@ -8,7 +8,7 @@ export default function ChainFilter({ chains, selected, onChange }) {
     const next = new Set(set);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    onChange(next.size === chains.length ? [] : [...next]);
+    onChange([...next]);
   }
 
   return (
@@ -36,7 +36,7 @@ export default function ChainFilter({ chains, selected, onChange }) {
       </div>
       {!all && (
         <p className="chain-filter-note">
-          {set.size} lánc kiválasztva. Az árak és a „Legolcsóbb” csak ezek közül számolnak.
+          {set.size} lánc kiválasztva{matchAll ? ', csak a mindegyikben kapható termékek látszanak' : ''}. Az árak és a „Legolcsóbb” csak ezek közül számolnak.
         </p>
       )}
     </div>

@@ -251,3 +251,16 @@ a{color:#1F7A4C}a:hover{color:#13241B}
  .chain-filter-label{line-height:1.2}
  .chain-filter-note{grid-column:1}
 }
+.toolbar{align-items:center}
+.switch{display:inline-flex;align-items:center;gap:10px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:2px solid #C9D6C5;background:#fff;font-size:14px;font-weight:600;color:#13241B;text-align:left}
+.switch:hover:not(:disabled){border-color:#13241B}
+.switch:focus-visible{outline:3px solid #8FD3A8;outline-offset:1px}
+.switch:disabled{opacity:.55;cursor:not-allowed}
+.switch.is-on{border-color:#1F7A4C;background:#E3F1E6}
+.switch-track{position:relative;width:38px;height:22px;border-radius:999px;background:#C9D6C5;flex:0 0 auto;transition:background .2s}
+.switch-thumb{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(19,36,27,.3);transition:transform .2s}
+.switch.is-on .switch-track{background:#1F7A4C}
+.switch.is-on .switch-thumb{transform:translateX(16px)}
+@media (prefers-reduced-motion:reduce){
+ .switch-track,.switch-thumb{transition:none}
+}

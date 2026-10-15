@@ -73,6 +73,7 @@ async function listProducts(env, url) {
   const cat = intParam(url.searchParams.get('cat'), null, 0, 1e9);
   const cats = idList(url.searchParams.get('cats'), 60);
   const chainIds = idList(url.searchParams.get('chains'), 30).filter(id => id >= 1 && id <= 30);
+  const matchAll = url.searchParams.get('match') === 'all' && chainIds.length > 1;
   const page = intParam(url.searchParams.get('page'), 1, 1, 200);
   const sort = url.searchParams.get('sort') ?? (q ? 'relevance' : 'name');
   const offset = (page - 1) * PAGE_SIZE;
@@ -96,8 +97,14 @@ async function listProducts(env, url) {
   }
   let selCols = '';
   if (chainIds.length) {
-    where.push('(p.chains & ?) != 0');
-    params.push(chainIds.reduce((m, id) => m | (1 << id), 0));
+    const mask = chainIds.reduce((m, id) => m | (1 << id), 0);
+    if (matchAll) {
+      where.push('(p.chains & ?) = ?');
+      params.push(mask, mask);
+    } else {
+      where.push('(p.chains & ?) != 0');
+      params.push(mask);
+    }
     const sel = `FROM prices x WHERE x.product_id = p.id AND x.chain_id IN (${chainIds.join(',')})`;
     selCols = `, (SELECT x.min_price ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_price, (SELECT x.chain_id ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_chain, (SELECT MIN(x.min_unit_price) ${sel}) AS sel_unit, (SELECT COUNT(*) ${sel}) AS sel_count`;
   }

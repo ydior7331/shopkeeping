@@ -10,6 +10,15 @@ import ProductDetail from './ProductDetail.jsx';
 import { useCart } from './useCart.js';
 
 const CHAIN_KEY = 'kosarar.chains';
+const MATCH_KEY = 'kosarar.matchAll';
+
+function loadMatchAll() {
+  try {
+    return localStorage.getItem(MATCH_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function loadChains() {
   try {
@@ -41,6 +50,8 @@ export default function Shop({ meta, onExit }) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('auto');
   const [chainSel, setChainSel] = useState(loadChains);
+  const [matchAll, setMatchAll] = useState(loadMatchAll);
+  const matchActive = matchAll && chainSel.length > 1;
   const chainKey = useMemo(() => [...chainSel].sort((a, b) => a - b).join(','), [chainSel]);
   const [list, setList] = useState({ items: [], page: 0, hasMore: false, loading: false, error: null });
   const [detailId, setDetailId] = useState(null);
@@ -72,6 +83,12 @@ export default function Shop({ meta, onExit }) {
   }, [chainSel]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(MATCH_KEY, matchAll ? '1' : '0');
+    } catch {}
+  }, [matchAll]);
+
+  useEffect(() => {
     if (!chains.length) return;
     const valid = chainSel.filter(id => chains.some(c => c.id === id));
     if (valid.length !== chainSel.length) setChainSel(valid);
@@ -95,6 +112,7 @@ export default function Shop({ meta, onExit }) {
       listCtl.current = ctl;
       setList(l => ({ ...l, loading: true, error: null, ...(page === 1 ? { items: [] } : {}) }));
       const params = { page, chains: chainKey };
+      if (matchActive) params.match = 'all';
       if (query) params.q = query;
       else if (catId != null) params.cat = catId;
       else params.cats = groupCats;
@@ -114,7 +132,7 @@ export default function Shop({ meta, onExit }) {
           if (e.name !== 'AbortError') setList(l => ({ ...l, loading: false, error: e.message }));
         });
     },
-    [query, catId, groupCats, sort, chainKey],
+    [query, catId, groupCats, sort, chainKey, matchActive],
   );
 
   useEffect(() => {
@@ -243,11 +261,31 @@ export default function Shop({ meta, onExit }) {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={matchActive}
+            disabled={chainSel.length < 2}
+            className={`switch ${matchActive ? 'is-on' : ''}`}
+            onClick={() => setMatchAll(v => !v)}
+            title={chainSel.length < 2 ? 'Jelölj ki legalább 2 láncot a szűrőben.' : undefined}
+          >
+            <span className="switch-track" aria-hidden="true">
+              <span className="switch-thumb" />
+            </span>
+            Csak ami minden kijelölt láncban kapható
+          </button>
         </div>
-        {chains.length > 0 && <ChainFilter chains={chains} selected={chainSel} onChange={setChainSel} />}
+        {chains.length > 0 && <ChainFilter chains={chains} selected={chainSel} onChange={setChainSel} matchAll={matchActive} />}
         {list.error && <p className="notice error">{list.error}</p>}
         {!list.loading && !list.error && list.page > 0 && !list.items.length && (
-          <p className="notice">{query ? 'Nincs találat. Próbálj rövidebb vagy más keresőszót.' : 'Ebben a kategóriában most nincs termék.'}</p>
+          <p className="notice">
+            {matchActive
+              ? 'Nincs olyan termék, ami mind a kijelölt láncokban kapható. Kapcsold ki a szűrést, vagy jelölj ki kevesebb láncot.'
+              : query
+                ? 'Nincs találat. Próbálj rövidebb vagy más keresőszót.'
+                : 'Ebben a kategóriában most nincs termék.'}
+          </p>
         )}
         <div className="grid">
           {list.items.map(p => (
