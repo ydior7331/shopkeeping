@@ -233,3 +233,21 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 @media (prefers-reduced-motion:reduce){
  .sub-wrap,.sub-wrap.open{transition:none}
 }
+.chain-filter{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:6px 12px;margin:0 0 16px;padding:10px 12px;border:2px solid #C9D6C5;border-radius:14px;background:#fff}
+.chain-filter-label{font-size:14px;font-weight:600;color:#4B5B52;line-height:34px}
+.chain-chips{display:flex;flex-wrap:wrap;gap:6px}
+.chain-chip{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px 0 9px;border-radius:999px;border:2px solid #C9D6C5;background:#fff;font-size:14px;font-weight:600;color:#13241B}
+.chain-chip:hover{border-color:#13241B}
+.chain-chip:focus-visible{outline:3px solid #8FD3A8;outline-offset:1px}
+.chain-chip.is-on{border-color:#13241B;background:#F2F6F0}
+.chain-chip.all{padding:0 12px}
+.chain-chip.all.is-on{background:#13241B;color:#fff}
+.chain-box{width:18px;height:18px;border-radius:5px;border:2px solid var(--chain);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.chain-chip.is-on .chain-box{background:var(--chain)}
+.chain-box svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.chain-filter-note{grid-column:2;margin:0;font-size:12px;color:#4B5B52}
+@media (max-width:560px){
+ .chain-filter{grid-template-columns:1fr}
+ .chain-filter-label{line-height:1.2}
+ .chain-filter-note{grid-column:1}
+}

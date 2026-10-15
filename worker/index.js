@@ -72,7 +72,7 @@ async function listProducts(env, url) {
   const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);
   const cat = intParam(url.searchParams.get('cat'), null, 0, 1e9);
   const cats = idList(url.searchParams.get('cats'), 60);
-  const chain = intParam(url.searchParams.get('chain'), null, 1, 30);
+  const chainIds = idList(url.searchParams.get('chains'), 30).filter(id => id >= 1 && id <= 30);
   const page = intParam(url.searchParams.get('page'), 1, 1, 200);
   const sort = url.searchParams.get('sort') ?? (q ? 'relevance' : 'name');
   const offset = (page - 1) * PAGE_SIZE;
@@ -94,23 +94,38 @@ async function listProducts(env, url) {
     where.push(`p.category_id IN (${cats.map(() => '?').join(',')})`);
     params.push(...cats);
   }
-  if (chain != null) {
+  let selCols = '';
+  if (chainIds.length) {
     where.push('(p.chains & ?) != 0');
-    params.push(1 << chain);
+    params.push(chainIds.reduce((m, id) => m | (1 << id), 0));
+    const sel = `FROM prices x WHERE x.product_id = p.id AND x.chain_id IN (${chainIds.join(',')})`;
+    selCols = `, (SELECT x.min_price ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_price, (SELECT x.chain_id ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_chain, (SELECT MIN(x.min_unit_price) ${sel}) AS sel_unit, (SELECT COUNT(*) ${sel}) AS sel_count`;
   }
   if (!q && cat == null && !cats.length) throw new HttpError(400, 'Adj meg keresőszót vagy kategóriát.');
 
   const orders = {
     name: 'p.name COLLATE NOCASE',
-    price: 'p.best_price',
-    unit: 'p.best_unit_price IS NULL, p.best_unit_price',
+    price: selCols ? 'sel_price' : 'p.best_price',
+    unit: selCols ? 'sel_unit IS NULL, sel_unit' : 'p.best_unit_price IS NULL, p.best_unit_price',
     chains: 'p.chain_count DESC, p.name COLLATE NOCASE',
     relevance: q ? 'f.rank * (1 + 0.3 * p.chain_count)' : 'p.name COLLATE NOCASE',
   };
   const order = orders[sort] ?? orders.name;
-  const sql = `SELECT ${PRODUCT_COLUMNS} FROM ${from} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`;
+  const sql = `SELECT ${PRODUCT_COLUMNS}${selCols} FROM ${from} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`;
   const { results } = await env.DB.prepare(sql).bind(...params, PAGE_SIZE + 1, offset).all();
-  return { items: results.slice(0, PAGE_SIZE), hasMore: results.length > PAGE_SIZE, page };
+  const items = results.slice(0, PAGE_SIZE).map(({ sel_price, sel_chain, sel_unit, sel_count, ...p }) =>
+    selCols
+      ? {
+          ...p,
+          best_price: sel_price,
+          best_chain: sel_chain,
+          best_unit_price: sel_unit,
+          prev_best_price: sel_price === p.best_price ? p.prev_best_price : null,
+          sel_count,
+        }
+      : p,
+  );
+  return { items, hasMore: results.length > PAGE_SIZE, page };
 }
 
 async function getProduct(env, id) {

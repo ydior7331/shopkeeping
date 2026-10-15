@@ -56,7 +56,7 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
       <div className="price-row">
         <span className="price">
           {ft(p.best_price)}
-          {p.chain_count > 1 && <small className="from">-tól</small>}
+          {(p.sel_count ?? p.chain_count) > 1 && <small className="from">-tól</small>}
         </span>
       </div>
       {unit && (

@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import Basket from './Basket.jsx';
+import ChainFilter from './ChainFilter.jsx';
 import Changes from './Changes.jsx';
 import { fullDay } from './format.js';
 import { Ico, ICONS } from './Icons.jsx';
 import ProductCard from './ProductCard.jsx';
 import ProductDetail from './ProductDetail.jsx';
 import { useCart } from './useCart.js';
+
+const CHAIN_KEY = 'kosarar.chains';
+
+function loadChains() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHAIN_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter(Number.isInteger) : [];
+  } catch {
+    return [];
+  }
+}
 
 const SORTS = [
   { id: 'auto', label: 'Ajánlott' },
@@ -28,7 +40,8 @@ export default function Shop({ meta, onExit }) {
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('auto');
-  const [chain, setChain] = useState('');
+  const [chainSel, setChainSel] = useState(loadChains);
+  const chainKey = useMemo(() => [...chainSel].sort((a, b) => a - b).join(','), [chainSel]);
   const [list, setList] = useState({ items: [], page: 0, hasMore: false, loading: false, error: null });
   const [detailId, setDetailId] = useState(null);
   const [msg, setMsg] = useState('');
@@ -53,6 +66,18 @@ export default function Shop({ meta, onExit }) {
   }, []);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(CHAIN_KEY, JSON.stringify(chainSel));
+    } catch {}
+  }, [chainSel]);
+
+  useEffect(() => {
+    if (!chains.length) return;
+    const valid = chainSel.filter(id => chains.some(c => c.id === id));
+    if (valid.length !== chainSel.length) setChainSel(valid);
+  }, [chains, chainSel]);
+
+  useEffect(() => {
     const t = setTimeout(() => setQuery(input.trim()), 300);
     return () => clearTimeout(t);
   }, [input]);
@@ -69,7 +94,7 @@ export default function Shop({ meta, onExit }) {
       const ctl = new AbortController();
       listCtl.current = ctl;
       setList(l => ({ ...l, loading: true, error: null, ...(page === 1 ? { items: [] } : {}) }));
-      const params = { page, chain };
+      const params = { page, chains: chainKey };
       if (query) params.q = query;
       else if (catId != null) params.cat = catId;
       else params.cats = groupCats;
@@ -89,7 +114,7 @@ export default function Shop({ meta, onExit }) {
           if (e.name !== 'AbortError') setList(l => ({ ...l, loading: false, error: e.message }));
         });
     },
-    [query, catId, groupCats, sort, chain],
+    [query, catId, groupCats, sort, chainKey],
   );
 
   useEffect(() => {
@@ -218,18 +243,8 @@ export default function Shop({ meta, onExit }) {
               ))}
             </select>
           </label>
-          <label className="select">
-            <span>Lánc</span>
-            <select value={chain} onChange={e => setChain(e.target.value)}>
-              <option value="">Mind</option>
-              {chains.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
+        {chains.length > 0 && <ChainFilter chains={chains} selected={chainSel} onChange={setChainSel} />}
         {list.error && <p className="notice error">{list.error}</p>}
         {!list.loading && !list.error && list.page > 0 && !list.items.length && (
           <p className="notice">{query ? 'Nincs találat. Próbálj rövidebb vagy más keresőszót.' : 'Ebben a kategóriában most nincs termék.'}</p>
