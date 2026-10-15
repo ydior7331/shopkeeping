@@ -1,0 +1,35 @@
+name: Napi árimport
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Újraimportálás akkor is, ha a nap már be van töltve'
+        type: boolean
+        default: false
+
+concurrency:
+  group: arimport
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/import.mjs ${{ inputs.force && '--force' || '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 02be304863ad0fd0303919d41b2aee4b
+          D1_DATABASE_ID: e45ca154-58a6-41d9-a738-a864ec44d32d

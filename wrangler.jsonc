@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kosarar",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
   "preview_urls": true,
@@ -8,7 +9,18 @@
     { "pattern": "shop.ydr1337.xyz", "custom_domain": true }
   ],
   "assets": {
-    "directory": "./public",
-    "not_found_handling": "single-page-application"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kosarar",
+      "database_id": "e45ca154-58a6-41d9-a738-a864ec44d32d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true }
 }
