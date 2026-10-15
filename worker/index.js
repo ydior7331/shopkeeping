@@ -24,6 +24,10 @@ function intParam(value, fallback, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function idList(value, max) {
+  return [...new Set((value ?? '').split(',').map(s => Number.parseInt(s, 10)).filter(n => Number.isFinite(n) && n >= 0))].slice(0, max);
+}
+
 function ftsQuery(q) {
   const tokens = q
     .normalize('NFC')
@@ -67,6 +71,7 @@ async function getCategories(env) {
 async function listProducts(env, url) {
   const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);
   const cat = intParam(url.searchParams.get('cat'), null, 0, 1e9);
+  const cats = idList(url.searchParams.get('cats'), 60);
   const chain = intParam(url.searchParams.get('chain'), null, 1, 30);
   const page = intParam(url.searchParams.get('page'), 1, 1, 200);
   const sort = url.searchParams.get('sort') ?? (q ? 'relevance' : 'name');
@@ -85,12 +90,15 @@ async function listProducts(env, url) {
   if (cat != null) {
     where.push('p.category_id = ?');
     params.push(cat);
+  } else if (cats.length) {
+    where.push(`p.category_id IN (${cats.map(() => '?').join(',')})`);
+    params.push(...cats);
   }
   if (chain != null) {
     where.push('(p.chains & ?) != 0');
     params.push(1 << chain);
   }
-  if (!q && cat == null) throw new HttpError(400, 'Adj meg keresőszót vagy kategóriát.');
+  if (!q && cat == null && !cats.length) throw new HttpError(400, 'Adj meg keresőszót vagy kategóriát.');
 
   const orders = {
     name: 'p.name COLLATE NOCASE',

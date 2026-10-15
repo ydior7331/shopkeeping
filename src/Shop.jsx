@@ -44,7 +44,7 @@ export default function Shop({ meta, onExit }) {
         setGroups(d.groups);
         if (d.groups.length) {
           setGroupId(d.groups[0].id);
-          setCatId(d.groups[0].categories[0]?.id ?? null);
+          setCatId(null);
         }
       })
       .catch(e => setGroupsError(e.message));
@@ -57,16 +57,22 @@ export default function Shop({ meta, onExit }) {
     return () => clearTimeout(t);
   }, [input]);
 
+  const groupCats = useMemo(() => {
+    const g = groups?.find(x => x.id === groupId);
+    return g ? g.categories.map(c => c.id).join(',') : '';
+  }, [groups, groupId]);
+
   const load = useCallback(
     page => {
-      if (!query && catId == null) return;
+      if (!query && catId == null && !groupCats) return;
       listCtl.current?.abort();
       const ctl = new AbortController();
       listCtl.current = ctl;
       setList(l => ({ ...l, loading: true, error: null, ...(page === 1 ? { items: [] } : {}) }));
       const params = { page, chain };
       if (query) params.q = query;
-      else params.cat = catId;
+      else if (catId != null) params.cat = catId;
+      else params.cats = groupCats;
       params.sort = sort === 'auto' ? (query ? 'relevance' : 'chains') : sort;
       api
         .products(params, ctl.signal)
@@ -83,7 +89,7 @@ export default function Shop({ meta, onExit }) {
           if (e.name !== 'AbortError') setList(l => ({ ...l, loading: false, error: e.message }));
         });
     },
-    [query, catId, sort, chain],
+    [query, catId, groupCats, sort, chain],
   );
 
   useEffect(() => {
@@ -105,7 +111,7 @@ export default function Shop({ meta, onExit }) {
 
   function pickGroup(g) {
     setGroupId(g.id);
-    setCatId(g.categories[0]?.id ?? null);
+    setCatId(null);
     setInput('');
     setQuery('');
     setView('browse');
@@ -113,7 +119,7 @@ export default function Shop({ meta, onExit }) {
   }
 
   function pickCat(c) {
-    setCatId(c.id);
+    setCatId(c ? c.id : null);
     setDetailId(null);
   }
 
@@ -155,9 +161,13 @@ export default function Shop({ meta, onExit }) {
   } else {
     main = (
       <>
-        <p className="crumb">{query ? `Keresés: „${query}”` : group && cat ? `${group.name} › ${cat.name}` : ' '}</p>
+        <p className="crumb">{query ? `Keresés: „${query}”` : group ? `${group.name} › ${cat ? cat.name : 'Összes'}` : ' '}</p>
         {!query && group && (
           <div className="subs">
+            <button type="button" className={`sub ${catId == null ? 'is-on' : ''}`} aria-pressed={catId == null} onClick={() => pickCat(null)}>
+              Összes
+              <span className="n">{group.product_count}</span>
+            </button>
             {group.categories.map(c => (
               <button key={c.id} type="button" className={`sub ${c.id === catId ? 'is-on' : ''}`} aria-pressed={c.id === catId} onClick={() => pickCat(c)}>
                 {c.name}
