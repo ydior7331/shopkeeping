@@ -193,3 +193,13 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 .cat{flex:0 0 auto}
 .main .subs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:thin}
 .main .subs .sub{flex:0 0 auto;min-height:38px;font-size:14px;white-space:nowrap}
+.thumb-btn{border:0;padding:0;background:none;display:block;width:100%;cursor:pointer}
+.thumb{height:140px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.thumb.no-img{background:#F2F6F0;color:#9DB9A3}
+.thumb.no-img svg{width:64px;height:54px}
+.thumb.large{width:180px;height:180px;flex:0 0 auto;border:2px solid #13241B;padding:10px}
+.detail-title{flex:1 1 260px;min-width:0}
+@media (max-width:560px){
+ .thumb.large{width:100%;height:220px}
+}

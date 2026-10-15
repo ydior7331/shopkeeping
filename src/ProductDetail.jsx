@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { chainColor, day, ft, fullDay, packText, unitPrice } from './format.js';
 import { Ico, ICONS } from './Icons.jsx';
 import { Stepper, Trend } from './ProductCard.jsx';
+import ProductImage from './ProductImage.jsx';
 
 function toMs(iso) {
   return Date.parse(`${iso}T00:00:00Z`);
@@ -128,7 +129,8 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
         <>
           <p className="crumb">{data.product.category_name}</p>
           <div className="detail-head">
-            <div>
+            <ProductImage ean={data.product.ean} alt={data.product.name} className="large" />
+            <div className="detail-title">
               <h3 className="detail-name">{data.product.name}</h3>
               <p className="item-qty">
                 {packText(data.product.pack, data.product.unit)} · EAN {data.product.ean}
@@ -182,7 +184,7 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
             </p>
           )}
           <p className="fineprint">
-            Az árak lánconként a legalacsonyabb és legmagasabb bolti árat mutatják. Forrás: GVH Árfigyelő.
+            Az árak lánconként a legalacsonyabb és legmagasabb bolti árat mutatják. Az árak és a termékkép forrása: GVH Árfigyelő.
           </p>
         </>
       )}

@@ -1,4 +1,5 @@
 import { day, ft, packText, pct, unitPrice } from './format.js';
+import ProductImage from './ProductImage.jsx';
 
 export function Trend({ p }) {
   const ch = pct(p.prev_best_price, p.best_price);
@@ -36,6 +37,9 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
   const unit = unitPrice(p.best_unit_price, p.unit);
   return (
     <article className="item">
+      <button type="button" className="thumb-btn" onClick={onOpen} tabIndex={-1} aria-hidden="true">
+        <ProductImage ean={p.ean} />
+      </button>
       <div className="item-top">
         {extra}
         {!extra && <Trend p={p} />}

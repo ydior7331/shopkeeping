@@ -54,3 +54,7 @@ export function chainColor(id) {
 export function az(word) {
   return /^[aáeéiíoóöőuúüű]/i.test(word ?? '') ? 'az' : 'a';
 }
+
+export function imageUrl(ean) {
+  return ean ? `https://cdnarfigyeloprodweu.azureedge.net/images/product-image-${encodeURIComponent(ean)}.jpg` : null;
+}
