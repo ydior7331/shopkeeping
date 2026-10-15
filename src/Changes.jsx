@@ -26,7 +26,7 @@ export default function Changes({ chainName, cart, onAdd, onDec, onOpen }) {
     <>
       <p className="crumb">
         Árváltozások
-        {data?.since && ` · ${day(data.since)} – ${day(data.until)}`}
+        {data?.since && ` · ${day(data.since)} és ${day(data.until)} között`}
       </p>
       <div className="subs">
         <button type="button" className={`sub ${dir === 'up' ? 'is-on' : ''}`} aria-pressed={dir === 'up'} onClick={() => setDir('up')}>

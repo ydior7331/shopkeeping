@@ -164,10 +164,10 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
                     </td>
                     <td>
                       <strong>{ft(p.min_price)}</strong>
-                      {p.max_price != null && p.max_price !== p.min_price && <span className="range"> – {ft(p.max_price)}</span>}
+                      {p.max_price != null && p.max_price !== p.min_price && <span className="range">legfeljebb {ft(p.max_price)}</span>}
                     </td>
-                    <td>{unitPrice(p.min_unit_price, data.product.unit) ?? '–'}</td>
-                    <td>{p.stores ?? '–'}</td>
+                    <td>{unitPrice(p.min_unit_price, data.product.unit) ?? 'nincs adat'}</td>
+                    <td>{p.stores ?? 'nincs adat'}</td>
                   </tr>
                 ))}
               </tbody>

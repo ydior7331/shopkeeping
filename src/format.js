@@ -2,7 +2,7 @@ const whole = new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 0 });
 const dec = new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 2 });
 
 export function ft(n) {
-  return n == null ? '–' : `${whole.format(Math.round(n))} Ft`;
+  return n == null ? 'nincs adat' : `${whole.format(Math.round(n))} Ft`;
 }
 
 export function num(n) {

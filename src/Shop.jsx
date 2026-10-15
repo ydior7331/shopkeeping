@@ -18,7 +18,7 @@ const SORTS = [
 export default function Shop({ meta, onExit }) {
   const chains = meta?.chains ?? [];
   const names = useMemo(() => new Map(chains.map(c => [c.id, c.name])), [chains]);
-  const chainName = useCallback(id => names.get(id) ?? '–', [names]);
+  const chainName = useCallback(id => names.get(id) ?? 'ismeretlen lánc', [names]);
 
   const [groups, setGroups] = useState(null);
   const [groupsError, setGroupsError] = useState(null);

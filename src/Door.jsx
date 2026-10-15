@@ -63,7 +63,7 @@ export default function Door({ pulled, onPull, chainCount }) {
       </p>
       <div className="facade">
         <div className="awning" />
-        <div className="sign">NYITVA · 0–24</div>
+        <div className="sign">ÉJJEL-NAPPAL NYITVA</div>
         <div className="window l" aria-hidden="true">
           <div>
             {chainCount || 9} lánc<small>egy helyen</small>
