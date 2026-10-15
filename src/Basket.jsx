@@ -1,13 +1,41 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { az, ft } from './format.js';
-import { Ico, ICONS } from './Icons.jsx';
+import { CartSvg, Ico, ICONS } from './Icons.jsx';
 
 export default function Basket({ cart, count, onRemove, onClear, onOpen, msg }) {
   const lines = useMemo(() => Object.values(cart), [cart]);
   const key = useMemo(() => lines.map(l => `${l.id}:${l.qty}`).sort().join(','), [lines]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
+  const closeRef = useRef(null);
+  const barRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  function close() {
+    setOpen(false);
+    barRef.current?.focus();
+  }
+
+  function openProduct(id) {
+    setOpen(false);
+    onOpen(id);
+  }
 
   useEffect(() => {
     if (!key) {
@@ -43,11 +71,34 @@ export default function Basket({ cart, count, onRemove, onClear, onOpen, msg }) 
   const stores = result?.chains ?? [];
   const complete = stores.filter(s => s.missing.length === 0);
   const max = Math.max(1, ...complete.map(s => s.total));
+  const [barTitle, barSub] = !lines.length
+    ? ['A kocsi', 'Még üres']
+    : complete.length
+      ? [`Legolcsóbb: ${complete[0].name}`, ft(complete[0].total)]
+      : result?.mix
+        ? ['Vegyesen a legolcsóbb', ft(result.mix.total)]
+        : ['A kocsi', 'Számolás…'];
 
   return (
-    <aside className="basket" aria-label="Kocsi tartalma">
+    <>
+      <button type="button" ref={barRef} className="basket-bar" aria-expanded={open} aria-controls="basket-panel" onClick={() => setOpen(true)}>
+        <span className="basket-bar-icon">
+          <CartSvg detailed={false} />
+          {count > 0 && <b>{count}</b>}
+        </span>
+        <span className="basket-bar-text">
+          <strong>{barTitle}</strong>
+          <span>{barSub}</span>
+        </span>
+        <span className="basket-bar-cta">Megnyitás</span>
+      </button>
+      {open && <div className="basket-backdrop" onClick={close} aria-hidden="true" />}
+      <aside id="basket-panel" className={`basket ${open ? 'is-open' : ''}`} aria-label="Kocsi tartalma">
       <h3>
         A kocsiban <span>{count} db</span>
+        <button type="button" ref={closeRef} className="icon-btn basket-close" onClick={close} aria-label="Kocsi bezárása">
+          <Ico d={ICONS.close} />
+        </button>
       </h3>
       {!lines.length ? (
         <p className="empty">Még üres. Tegyél bele néhány terméket, és megmutatjuk, melyik láncnál jön ki a legolcsóbban.</p>
@@ -58,7 +109,7 @@ export default function Basket({ cart, count, onRemove, onClear, onOpen, msg }) 
               <li key={l.id}>
                 <span>
                   <b>{l.qty}×</b>{' '}
-                  <button type="button" className="link" onClick={() => onOpen(l.id)}>
+                  <button type="button" className="link" onClick={() => openProduct(l.id)}>
                     {l.name}
                   </button>
                 </span>
@@ -131,6 +182,7 @@ export default function Basket({ cart, count, onRemove, onClear, onOpen, msg }) 
       <p className="sr-only" role="status" aria-live="polite">
         {msg}
       </p>
-    </aside>
+      </aside>
+    </>
   );
 }

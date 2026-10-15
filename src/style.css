@@ -264,3 +264,27 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 @media (prefers-reduced-motion:reduce){
  .switch-track,.switch-thumb{transition:none}
 }
+.basket-bar,.basket-backdrop,.basket-close{display:none}
+.basket h3 .basket-close{width:40px;height:40px;margin-left:8px;background:#fff;color:#13241B;padding:0;border-radius:50%}
+@media (max-width:1000px){
+ .main{padding-bottom:96px}
+ .basket-bar{display:flex;align-items:center;gap:12px;position:fixed;left:12px;right:12px;bottom:12px;z-index:40;min-height:64px;padding:8px 10px 8px 12px;border-radius:18px;border:2px solid #13241B;background:#13241B;color:#fff;text-align:left;box-shadow:0 14px 30px -12px rgba(19,36,27,.6)}
+ .basket-bar:focus-visible{outline:3px solid #8FD3A8;outline-offset:2px}
+ .basket-bar-icon{position:relative;flex:0 0 auto;color:#8FD3A8}
+ .basket-bar-icon svg{width:40px;height:34px}
+ .basket-bar-icon b{position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#E9C846;color:#13241B;font-size:12px;display:flex;align-items:center;justify-content:center}
+ .basket-bar-text{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+ .root .basket-bar{color:#fff}
+ .basket-bar-text strong{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .basket-bar-text span{font-size:13px;color:#C5D6CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .basket-bar-cta{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:#E9C846;color:#13241B;font-weight:700;font-size:14px}
+ .basket-backdrop{display:block;position:fixed;inset:0;z-index:49;background:rgba(19,36,27,.45)}
+ .basket{position:fixed;left:0;right:0;bottom:0;z-index:50;max-height:85vh;border:2px solid #13241B;border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -20px 40px -20px rgba(19,36,27,.5);transform:translateY(105%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.3,1),visibility 0s linear .3s}
+ .basket.is-open{transform:none;visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.3,1),visibility 0s linear 0s}
+ .basket-close{display:inline-flex}
+ .basket h3{position:sticky;top:-18px;margin:-18px -18px 0;padding:16px 18px 12px;background:#F2F6F0;z-index:1;border-bottom:1px solid #D3DECF}
+ .basket h3 span{margin-left:auto}
+}
+@media (prefers-reduced-motion:reduce){
+ .basket,.basket.is-open{transition:none}
+}
