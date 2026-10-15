@@ -2,6 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kosarar",
   "compatibility_date": "2026-10-01",
+  "routes": [
+    { "pattern": "shop.ydr1337.xyz", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./public",
     "not_found_handling": "single-page-application"
