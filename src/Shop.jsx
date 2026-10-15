@@ -120,6 +120,9 @@ export default function Shop({ meta, onExit }) {
 
   function pickCat(c) {
     setCatId(c ? c.id : null);
+    setInput('');
+    setQuery('');
+    setView('browse');
     setDetailId(null);
   }
 
@@ -161,21 +164,49 @@ export default function Shop({ meta, onExit }) {
   } else {
     main = (
       <>
-        <p className="crumb">{query ? `Keresés: „${query}”` : group ? `${group.name} › ${cat ? cat.name : 'Összes'}` : ' '}</p>
-        {!query && group && (
-          <div className="subs">
-            <button type="button" className={`sub ${catId == null ? 'is-on' : ''}`} aria-pressed={catId == null} onClick={() => pickCat(null)}>
-              Összes
-              <span className="n">{group.product_count}</span>
-            </button>
-            {group.categories.map(c => (
-              <button key={c.id} type="button" className={`sub ${c.id === catId ? 'is-on' : ''}`} aria-pressed={c.id === catId} onClick={() => pickCat(c)}>
-                {c.name}
-                <span className="n">{c.product_count}</span>
-              </button>
-            ))}
+        {groups && (
+          <div className="mobile-pick">
+            <label className="select">
+              <span>Csoport</span>
+              <select value={groupId ?? ''} onChange={e => pickGroup(groups.find(g => g.id === e.target.value))}>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {group && (
+              <label className="select">
+                <span>Alkategória</span>
+                <select value={catId ?? ''} onChange={e => pickCat(e.target.value ? { id: Number(e.target.value) } : null)}>
+                  <option value="">Összes ({group.product_count})</option>
+                  {group.categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.product_count})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         )}
+        <p className="crumb">
+          {query ? (
+            `Keresés: „${query}”`
+          ) : group ? (
+            <>
+              {group.name} › {cat ? cat.name : 'Összes'}
+              {cat && (
+                <button type="button" className="crumb-reset" onClick={() => pickCat(null)} aria-label="Alkategória szűrés törlése">
+                  <Ico d={ICONS.close} />
+                </button>
+              )}
+            </>
+          ) : (
+            ' '
+          )}
+        </p>
         <div className="toolbar">
           <label className="select">
             <span>Rendezés</span>
@@ -265,15 +296,55 @@ export default function Shop({ meta, onExit }) {
             {groupsError && <p className="notice error">{groupsError}</p>}
             {!groups && !groupsError && <p className="notice">Betöltés…</p>}
             {groups?.map(g => {
-              const on = g.id === groupId && !query && view === 'browse';
+              const browsing = !query && view === 'browse';
+              const on = g.id === groupId && browsing;
+              const opened = g.id === groupId;
               return (
-                <button key={g.id} type="button" className={`cat ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => pickGroup(g)}>
-                  <Ico d={g.icon} />
-                  <span className="cat-name">{g.name}</span>
-                  <span className="cat-count">
-                    {g.categories.length} kategória · {g.product_count} termék
-                  </span>
-                </button>
+                <div key={g.id} className="grp">
+                  <button type="button" className={`cat ${on ? 'is-on' : ''}`} aria-expanded={opened} aria-controls={`sub-${g.id}`} onClick={() => pickGroup(g)}>
+                    <Ico d={g.icon} />
+                    <span className="cat-name">{g.name}</span>
+                    <span className="cat-count">
+                      {g.categories.length} kategória · {g.product_count} termék
+                    </span>
+                  </button>
+                  <div className={`sub-wrap ${opened ? 'open' : ''}`} id={`sub-${g.id}`}>
+                    <div className="sub-inner">
+                      <ul className="sub-list">
+                        <li>
+                          <button
+                            type="button"
+                            className={`sub-btn is-all ${on && catId == null ? 'is-current' : ''}`}
+                            aria-current={on && catId == null ? 'true' : undefined}
+                            tabIndex={opened ? 0 : -1}
+                            onClick={() => pickCat(null)}
+                          >
+                            <span className="sub-name">Összes</span>
+                            <span className="sub-cnt">{g.product_count}</span>
+                          </button>
+                        </li>
+                        {g.categories.map(c => {
+                          const cur = on && c.id === catId;
+                          return (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                className={`sub-btn ${cur ? 'is-current' : ''}`}
+                                aria-current={cur ? 'true' : undefined}
+                                tabIndex={opened ? 0 : -1}
+                                title={c.name}
+                                onClick={() => pickCat(c)}
+                              >
+                                <span className="sub-name">{c.name}</span>
+                                <span className="sub-cnt">{c.product_count}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </nav>
