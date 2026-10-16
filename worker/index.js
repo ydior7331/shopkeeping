@@ -2,7 +2,7 @@ import { GROUPS, OTHER_GROUP } from './groups.js';
 
 const PAGE_SIZE = 24;
 const CACHE_SECONDS = 900;
-const PRODUCT_COLUMNS = 'p.id, p.ean, p.name, p.category_id, p.unit, p.pack, p.chain_count, p.best_price, p.best_chain, p.best_unit_price, p.prev_best_price, p.best_changed_on';
+const PRODUCT_COLUMNS = 'p.id, p.ean, p.name, p.category_id, p.unit, p.pack, p.chain_count, p.best_price, p.best_chain, p.best_unit_price, p.prev_best_price, p.best_changed_on, p.best_normal_price, p.loyalty_price, p.loyalty_chain, p.promo_chains, p.loyalty_chains';
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -74,6 +74,7 @@ async function listProducts(env, url) {
   const cats = idList(url.searchParams.get('cats'), 60);
   const chainIds = idList(url.searchParams.get('chains'), 30).filter(id => id >= 1 && id <= 30);
   const matchAll = url.searchParams.get('match') === 'all' && chainIds.length > 1;
+  const promoOnly = url.searchParams.get('promo') === '1';
   const page = intParam(url.searchParams.get('page'), 1, 1, 200);
   const sort = url.searchParams.get('sort') ?? (q ? 'relevance' : 'name');
   const offset = (page - 1) * PAGE_SIZE;
@@ -106,7 +107,11 @@ async function listProducts(env, url) {
       params.push(mask);
     }
     const sel = `FROM prices x WHERE x.product_id = p.id AND x.chain_id IN (${chainIds.join(',')})`;
-    selCols = `, (SELECT x.min_price ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_price, (SELECT x.chain_id ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_chain, (SELECT MIN(x.min_unit_price) ${sel}) AS sel_unit, (SELECT COUNT(*) ${sel}) AS sel_count`;
+    selCols = `, (SELECT x.min_price ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_price, (SELECT x.chain_id ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_chain, (SELECT CASE WHEN x.promo = 1 THEN x.normal_price END ${sel} ORDER BY x.min_price, x.chain_id LIMIT 1) AS sel_normal, (SELECT MIN(x.min_unit_price) ${sel}) AS sel_unit, (SELECT COUNT(*) ${sel}) AS sel_count, (SELECT x.loyalty_price ${sel} AND x.loyalty_price IS NOT NULL ORDER BY x.loyalty_price, x.chain_id LIMIT 1) AS sel_loyalty, (SELECT x.chain_id ${sel} AND x.loyalty_price IS NOT NULL ORDER BY x.loyalty_price, x.chain_id LIMIT 1) AS sel_loyalty_chain`;
+  }
+  if (promoOnly) {
+    where.push('((p.promo_chains | p.loyalty_chains) & ?) != 0');
+    params.push(chainIds.length ? chainIds.reduce((m, id) => m | (1 << id), 0) : 0x7fffffff);
   }
   if (!q && cat == null && !cats.length) throw new HttpError(400, 'Adj meg keresőszót vagy kategóriát.');
 
@@ -120,13 +125,16 @@ async function listProducts(env, url) {
   const order = orders[sort] ?? orders.name;
   const sql = `SELECT ${PRODUCT_COLUMNS}${selCols} FROM ${from} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`;
   const { results } = await env.DB.prepare(sql).bind(...params, PAGE_SIZE + 1, offset).all();
-  const items = results.slice(0, PAGE_SIZE).map(({ sel_price, sel_chain, sel_unit, sel_count, ...p }) =>
+  const items = results.slice(0, PAGE_SIZE).map(({ sel_price, sel_chain, sel_normal, sel_unit, sel_count, sel_loyalty, sel_loyalty_chain, ...p }) =>
     selCols
       ? {
           ...p,
           best_price: sel_price,
           best_chain: sel_chain,
           best_unit_price: sel_unit,
+          best_normal_price: sel_normal,
+          loyalty_price: sel_loyalty,
+          loyalty_chain: sel_loyalty_chain,
           prev_best_price: sel_price === p.best_price ? p.prev_best_price : null,
           sel_count,
           all_best_price: p.best_price,
@@ -143,7 +151,7 @@ async function getProduct(env, id) {
   ).bind(id).first();
   if (!product) throw new HttpError(404, 'Nincs ilyen termék.');
   const [current, history] = await env.DB.batch([
-    env.DB.prepare('SELECT chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores FROM prices WHERE product_id = ? ORDER BY min_price').bind(id),
+    env.DB.prepare('SELECT chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores, normal_price, promo, loyalty_price FROM prices WHERE product_id = ? ORDER BY min_price').bind(id),
     env.DB.prepare('SELECT chain_id, valid_from, valid_to, min_price, max_price FROM price_history WHERE product_id = ? ORDER BY valid_from').bind(id),
   ]);
   return { product, prices: current.results, history: history.results };

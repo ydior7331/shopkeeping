@@ -10,6 +10,8 @@
 - **Kategóriák:** az Árfigyelő 161 kategóriája 12 főcsoportba rendezve.
 - **Keresés:** ékezet nélkül is működik, például a `turo` megtalálja a túrót.
 - **Termékkártyák:** képpel, a legolcsóbb árral és lánccal, egységárral, és azzal, hogy hány láncban kapható.
+- **Akciók:** AKCIÓ címke áthúzott eredeti árral, a hűségkártyás ár külön sorban, és egy „Csak akciós és kártyás” kapcsoló.
+- **Láncszűrő:** több lánc kijelölhető egyszerre, és bekapcsolható, hogy csak a mindegyikben kapható termékek látszódjanak.
 - **Terméklap:** lánconkénti árak, boltszám és ártörténet-grafikon.
 - **Mi drágult?:** a legnagyobb drágulások és árcsökkenések az elmúlt 1, 7, 30 vagy 90 napban.
 - **Kosár:** a böngészőben marad meg. Megmutatja a végösszeget láncokra bontva, és hogy melyik lánc árulja az összes terméket.
@@ -48,6 +50,7 @@ A D1 ingyenes kerete napi 100 ezer sorírás. Az első import kb. 50 ezer sort �
 ## Adatforrás
 
 - **Árak:** `https://cdnarfigyeloprodweu.azureedge.net/excel/arfigyelo_napi_termekadatok.xlsx`. Naponta egyszer frissül, a munkalap nevében benne van a nap dátuma.
+- **Akciós és kártyás árak:** a GVH Árfigyelő weboldalának saját API-jából (`/api/products-by-category/{kategória}?limit=48&offset=…`), mind a 161 kategória végiglapozásával (kb. 350 kérés, 1,5 perc). Az xlsx minimum ára már az akciós ár, ebből derül ki a normál ár és az akció ténye. A hűségkártyás ár nincs benne az xlsx-ben. Ha az API nem érhető el, az import ettől még lefut, csak a jelölések nem frissülnek.
 - **Termékképek:** a GVH CDN-jéről, a termék azonosítója alapján: `https://cdnarfigyeloprodweu.azureedge.net/images/product-image-{EAN}.jpg`. A termékek kb. 98%-ához van kép, a többinél egy kosárikon jelenik meg.
 - **Azonosítók:** a legtöbb termék EAN-t kap, de az Aldi, a Lidl, a Penny és a Spar egy részénél saját azonosító áll, például `aldi-106896`.
 - **Kimaradó láncok:** ha egy lánc egy nap teljesen kimarad a fájlból, az árai megmaradnak, és nem számítanak eltűntnek.
@@ -74,7 +77,8 @@ Az importáló kapcsolói:
 - `--fresh`: üres adatbázisból indul, nem olvassa a D1-et
 - `--out <fájl>`: a változásokat SQL-fájlba írja ahelyett, hogy végrehajtaná
 - `--dry-run`: csak kiírja, mi változna
-- `--force`: akkor is lefut, ha az aznapi adat már be van töltve
+- `--force`: akkor is lefut, ha az aznapi adat már be van töltve (régebbi napot soha nem tölt be)
+- `--no-promos`: kihagyja a GVH API-t, az akciós jelölések nem frissülnek
 
 ## Telepítés
 

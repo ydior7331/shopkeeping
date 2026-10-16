@@ -1,0 +1,11 @@
+ALTER TABLE prices ADD COLUMN normal_price REAL;
+ALTER TABLE prices ADD COLUMN promo INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE prices ADD COLUMN loyalty_price REAL;
+
+ALTER TABLE products ADD COLUMN best_normal_price REAL;
+ALTER TABLE products ADD COLUMN loyalty_price REAL;
+ALTER TABLE products ADD COLUMN loyalty_chain INTEGER;
+ALTER TABLE products ADD COLUMN promo_chains INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE products ADD COLUMN loyalty_chains INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE imports ADD COLUMN promos INTEGER;

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArfigyelo } from './xlsx.mjs';
 import { plan } from './plan.mjs';
+import { fetchPromos } from './promos.mjs';
 
 const SOURCE_URL = 'https://cdnarfigyeloprodweu.azureedge.net/excel/arfigyelo_napi_termekadatok.xlsx';
 const MIN_ROWS = 5000;
@@ -18,6 +19,7 @@ const OUT = opt('--out');
 const FRESH = flag('--fresh');
 const FORCE = flag('--force');
 const DRY = flag('--dry-run');
+const NO_PROMOS = flag('--no-promos');
 
 const { CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, D1_DATABASE_ID } = process.env;
 const useRemote = !FRESH;
@@ -62,7 +64,7 @@ async function selectPaged(sqlFor, keyOf, pageSize = 5000) {
 
 async function download() {
   if (FILE) return { bytes: readFileSync(FILE), etag: null };
-  const res = await fetch(SOURCE_URL, { headers: { 'cache-control': 'no-cache' } });
+  const res = await fetch(`${SOURCE_URL}?t=${Date.now()}`, { headers: { 'cache-control': 'no-cache' } });
   if (!res.ok) throw new Error(`Letöltési hiba: HTTP ${res.status}`);
   return { bytes: new Uint8Array(await res.arrayBuffer()), etag: res.headers.get('etag') };
 }
@@ -73,14 +75,14 @@ async function loadState() {
   const categories = await selectAll('SELECT id, name, product_count FROM categories');
   const products = await selectPaged(
     (after, n) => ({
-      sql: 'SELECT id, ean, name, category_id, unit, pack, chains, chain_count, best_price, best_chain, best_unit_price, prev_best_price, best_changed_on FROM products WHERE id > ? ORDER BY id LIMIT ?',
+      sql: 'SELECT id, ean, name, category_id, unit, pack, chains, chain_count, best_price, best_chain, best_unit_price, prev_best_price, best_changed_on, best_normal_price, loyalty_price, loyalty_chain, promo_chains, loyalty_chains FROM products WHERE id > ? ORDER BY id LIMIT ?',
       params: [after ?? 0, n],
     }),
     r => r.id,
   );
   const prices = await selectPaged(
     (after, n) => ({
-      sql: 'SELECT product_id, chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores FROM prices WHERE (product_id, chain_id) > (?, ?) ORDER BY product_id, chain_id LIMIT ?',
+      sql: 'SELECT product_id, chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores, normal_price, promo, loyalty_price FROM prices WHERE (product_id, chain_id) > (?, ?) ORDER BY product_id, chain_id LIMIT ?',
       params: [after?.[0] ?? 0, after?.[1] ?? 0, n],
     }),
     r => [r.product_id, r.chain_id],
@@ -116,9 +118,13 @@ console.log(`Forrás: ${parsed.sheetName} · ${parsed.rows.length} sor · nap: $
 
 if (parsed.rows.length < MIN_ROWS) throw new Error(`Gyanúsan kevés sor (${parsed.rows.length}), az import leáll`);
 
-if (useRemote && !FORCE) {
-  const done = await selectAll('SELECT day FROM imports WHERE day >= ? LIMIT 1', [day]);
-  if (done.length) {
+if (useRemote) {
+  const latest = (await selectAll('SELECT MAX(day) AS day FROM imports'))[0]?.day ?? null;
+  if (latest && day < latest) {
+    console.log(`A forrás régebbi napot ad (${day}), mint ami már be van töltve (${latest}), nincs teendő.`);
+    process.exit(0);
+  }
+  if (latest === day && !FORCE) {
     console.log(`A(z) ${day} napi adat már be van töltve, nincs teendő.`);
     process.exit(0);
   }
@@ -126,7 +132,17 @@ if (useRemote && !FORCE) {
 
 const state = await loadState();
 console.log(`Jelenlegi állapot: ${state.products.length} termék, ${state.prices.length} ár`);
-const { stmts, stats } = plan(day, parsed.rows, state, etag);
+let promos = null;
+if (!NO_PROMOS) {
+  try {
+    const result = await fetchPromos({ log: m => console.log(m) });
+    if (result.products >= parsed.rows.length * 0.3) promos = result.offers;
+    else console.warn(`A GVH API kevés terméket adott (${result.products}), az akciós jelölések most nem frissülnek.`);
+  } catch (err) {
+    console.warn(`A GVH API nem érhető el (${err.message}), az akciós jelölések most nem frissülnek.`);
+  }
+}
+const { stmts, stats } = plan(day, parsed.rows, state, etag, promos);
 console.log(JSON.stringify(stats));
 
 if (OUT) {

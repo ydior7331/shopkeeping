@@ -295,3 +295,11 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 .legend i{margin-right:2px}
 .chain-chip .chain-logo{margin-left:-2px}
 .meta.elsewhere{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#8A2C0B;font-weight:600;background:#FCE3D6;border-radius:8px;padding:4px 8px}
+.meta.loyalty{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#4A2C7A;font-weight:600;background:#EDE5F7;border-radius:8px;padding:4px 8px}
+.sale.small{font-size:11px;padding:2px 6px;margin-right:6px;vertical-align:middle}
+.sale-price{color:#C23B12}
+.range-old{color:#5D6B63;font-size:13px}
+.loyalty-text{color:#4A2C7A;font-weight:600}
+.price-stack{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.price-stack .sale{align-self:center}
+.price.is-sale{color:#C23B12}

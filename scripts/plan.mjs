@@ -12,9 +12,20 @@ function same(a, b) {
   return (a ?? null) === (b ?? null);
 }
 
-export function plan(day, rows, state, etag) {
+function promoFields(promos, offer, minPrice, old) {
+  if (!promos) return { normal_price: old?.normal_price ?? null, promo: old?.promo ?? 0, loyalty_price: old?.loyalty_price ?? null };
+  if (!offer) return { normal_price: null, promo: 0, loyalty_price: null };
+  const promo = offer.discounted != null && offer.discounted === minPrice && offer.normal != null && offer.normal > minPrice ? 1 : 0;
+  return {
+    normal_price: promo ? offer.normal : null,
+    promo,
+    loyalty_price: offer.loyalty != null && offer.loyalty < minPrice ? offer.loyalty : null,
+  };
+}
+
+export function plan(day, rows, state, etag, promos = null) {
   const stmts = [];
-  const stats = { rows: rows.length, productsNew: 0, productsChanged: 0, pricesNew: 0, pricesChanged: 0, pricesUpdated: 0, pricesGone: 0 };
+  const stats = { rows: rows.length, productsNew: 0, productsChanged: 0, pricesNew: 0, pricesChanged: 0, pricesUpdated: 0, pricesGone: 0, promoUpdated: 0 };
   const initial = state.prices.length === 0;
 
   const chainByName = new Map(state.chains.map(c => [c.name, c]));
@@ -93,6 +104,7 @@ export function plan(day, rows, state, etag) {
     const key = `${p.id}:${chainId}`;
     const old = current.get(key);
     const next = { product_id: p.id, chain_id: chainId, valid_from: day, min_price: r.minPrice, max_price: r.maxPrice, min_unit_price: r.minUnit, max_unit_price: r.maxUnit, stores: r.stores };
+    Object.assign(next, promoFields(promos, promos?.get(`${r.ean}|${r.chain}`), r.minPrice, old));
     if (!old) {
       upserts.push(next);
       finalPrices.set(key, next);
@@ -113,11 +125,19 @@ export function plan(day, rows, state, etag) {
       finalPrices.set(key, next);
       touched.add(p.id);
       stats.pricesChanged++;
-    } else if (!same(old.stores, next.stores)) {
-      next.valid_from = old.valid_from;
-      upserts.push(next);
-      finalPrices.set(key, next);
-      stats.pricesUpdated++;
+    } else {
+      const promoChanged = !same(old.normal_price, next.normal_price) || !same(old.promo ?? 0, next.promo) || !same(old.loyalty_price, next.loyalty_price);
+      if (promoChanged || !same(old.stores, next.stores)) {
+        next.valid_from = old.valid_from;
+        upserts.push(next);
+        finalPrices.set(key, next);
+        if (promoChanged) {
+          touched.add(p.id);
+          stats.promoUpdated++;
+        } else {
+          stats.pricesUpdated++;
+        }
+      }
     }
   }
 
@@ -150,8 +170,16 @@ export function plan(day, rows, state, etag) {
     let mask = 0;
     let best = null;
     let bestUnit = null;
+    let promoMask = 0;
+    let loyaltyMask = 0;
+    let loyal = null;
     for (const x of list) {
       mask |= 1 << x.chain_id;
+      if (x.promo) promoMask |= 1 << x.chain_id;
+      if (x.loyalty_price != null) {
+        loyaltyMask |= 1 << x.chain_id;
+        if (!loyal || x.loyalty_price < loyal.loyalty_price) loyal = x;
+      }
       if (!best || x.min_price < best.min_price || (x.min_price === best.min_price && x.chain_id < best.chain_id)) best = x;
       if (x.min_unit_price != null && (bestUnit == null || x.min_unit_price < bestUnit)) bestUnit = x.min_unit_price;
     }
@@ -163,6 +191,11 @@ export function plan(day, rows, state, etag) {
       best_unit_price: bestUnit,
       prev_best_price: p.prev_best_price,
       best_changed_on: p.best_changed_on,
+      best_normal_price: best?.promo ? best.normal_price : null,
+      loyalty_price: loyal?.loyalty_price ?? null,
+      loyalty_chain: loyal?.chain_id ?? null,
+      promo_chains: promoMask,
+      loyalty_chains: loyaltyMask,
     };
     if (!p.isNew && p.best_price != null && agg.best_price != null && p.best_price !== agg.best_price) {
       agg.prev_best_price = p.best_price;
@@ -183,20 +216,22 @@ export function plan(day, rows, state, etag) {
   }
 
   stmts.push(...catStmts);
-  pushInserts(stmts, 'INSERT INTO products (id, ean, name, category_id, unit, pack, chains, chain_count, best_price, best_chain, best_unit_price, prev_best_price, best_changed_on) VALUES',
-    newProducts.map(p => [p.id, p.ean, p.name, p.category_id, p.unit, p.pack, p.chains, p.chain_count, p.best_price, p.best_chain, p.best_unit_price, p.prev_best_price, p.best_changed_on]));
+  pushInserts(stmts, 'INSERT INTO products (id, ean, name, category_id, unit, pack, chains, chain_count, best_price, best_chain, best_unit_price, prev_best_price, best_changed_on, best_normal_price, loyalty_price, loyalty_chain, promo_chains, loyalty_chains) VALUES',
+    newProducts.map(p => [p.id, p.ean, p.name, p.category_id, p.unit, p.pack, p.chains, p.chain_count, p.best_price, p.best_chain, p.best_unit_price, p.prev_best_price, p.best_changed_on, p.best_normal_price, p.loyalty_price, p.loyalty_chain, p.promo_chains, p.loyalty_chains]));
   for (const p of productUpdates) {
-    stmts.push(`UPDATE products SET name = ${lit(p.name)}, category_id = ${lit(p.category_id)}, unit = ${lit(p.unit)}, pack = ${lit(p.pack)}, chains = ${p.chains}, chain_count = ${p.chain_count}, best_price = ${lit(p.best_price)}, best_chain = ${lit(p.best_chain)}, best_unit_price = ${lit(p.best_unit_price)}, prev_best_price = ${lit(p.prev_best_price)}, best_changed_on = ${lit(p.best_changed_on)} WHERE id = ${p.id}`);
+    stmts.push(`UPDATE products SET name = ${lit(p.name)}, category_id = ${lit(p.category_id)}, unit = ${lit(p.unit)}, pack = ${lit(p.pack)}, chains = ${p.chains}, chain_count = ${p.chain_count}, best_price = ${lit(p.best_price)}, best_chain = ${lit(p.best_chain)}, best_unit_price = ${lit(p.best_unit_price)}, prev_best_price = ${lit(p.prev_best_price)}, best_changed_on = ${lit(p.best_changed_on)}, best_normal_price = ${lit(p.best_normal_price)}, loyalty_price = ${lit(p.loyalty_price)}, loyalty_chain = ${lit(p.loyalty_chain)}, promo_chains = ${p.promo_chains}, loyalty_chains = ${p.loyalty_chains} WHERE id = ${p.id}`);
   }
   for (const [id, name] of ftsDeletes) stmts.push(`INSERT INTO products_fts (products_fts, rowid, name) VALUES ('delete', ${id}, ${lit(name)})`);
   pushInserts(stmts, 'INSERT INTO products_fts (rowid, name) VALUES', ftsInserts);
   pushInserts(stmts, 'INSERT OR REPLACE INTO price_history (product_id, chain_id, valid_from, valid_to, min_price, max_price, min_unit_price, max_unit_price, stores) VALUES', history);
   pushInserts(stmts, 'INSERT OR REPLACE INTO price_changes (day, product_id, chain_id, old_price, new_price) VALUES', changes);
-  pushInserts(stmts, 'INSERT INTO prices (product_id, chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores) VALUES',
-    upserts.map(x => [x.product_id, x.chain_id, x.valid_from, x.min_price, x.max_price, x.min_unit_price, x.max_unit_price, x.stores]),
-    ' ON CONFLICT (product_id, chain_id) DO UPDATE SET valid_from = excluded.valid_from, min_price = excluded.min_price, max_price = excluded.max_price, min_unit_price = excluded.min_unit_price, max_unit_price = excluded.max_unit_price, stores = excluded.stores');
+  pushInserts(stmts, 'INSERT INTO prices (product_id, chain_id, valid_from, min_price, max_price, min_unit_price, max_unit_price, stores, normal_price, promo, loyalty_price) VALUES',
+    upserts.map(x => [x.product_id, x.chain_id, x.valid_from, x.min_price, x.max_price, x.min_unit_price, x.max_unit_price, x.stores, x.normal_price, x.promo, x.loyalty_price]),
+    ' ON CONFLICT (product_id, chain_id) DO UPDATE SET valid_from = excluded.valid_from, min_price = excluded.min_price, max_price = excluded.max_price, min_unit_price = excluded.min_unit_price, max_unit_price = excluded.max_unit_price, stores = excluded.stores, normal_price = excluded.normal_price, promo = excluded.promo, loyalty_price = excluded.loyalty_price');
   for (const [pid, cid] of deletes) stmts.push(`DELETE FROM prices WHERE product_id = ${pid} AND chain_id = ${cid}`);
-  stmts.push(`INSERT OR REPLACE INTO imports (day, imported_at, source_etag, row_count, products_new, prices_changed, prices_new, prices_gone) VALUES ${tuple([day, new Date().toISOString(), etag, stats.rows, stats.productsNew, stats.pricesChanged, stats.pricesNew, stats.pricesGone])}`);
+  const promoCount = promos ? [...finalPrices.values()].filter(x => x.promo || x.loyalty_price != null).length : null;
+  stats.promos = promoCount;
+  stmts.push(`INSERT OR REPLACE INTO imports (day, imported_at, source_etag, row_count, products_new, prices_changed, prices_new, prices_gone, promos) VALUES ${tuple([day, new Date().toISOString(), etag, stats.rows, stats.productsNew, stats.pricesChanged, stats.pricesNew, stats.pricesGone, promoCount])}`);
 
   stats.history = history.length;
   stats.changes = changes.length;

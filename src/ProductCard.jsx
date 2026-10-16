@@ -14,6 +14,24 @@ export function Trend({ p }) {
   );
 }
 
+export function isPromo(p) {
+  return p.best_normal_price != null && p.best_price != null && p.best_normal_price > p.best_price;
+}
+
+export function SaleTag({ normal, price }) {
+  return <span className="sale">AKCIÓ −{Math.round(((normal - price) / normal) * 100)}%</span>;
+}
+
+export function LoyaltyLine({ p, chainName, size = 20 }) {
+  if (p.loyalty_price == null || p.best_price == null || p.loyalty_price >= p.best_price) return null;
+  return (
+    <p className="meta loyalty">
+      Kártyával: <ChainLogo name={chainName(p.loyalty_chain)} size={size} />
+      {chainName(p.loyalty_chain)}, {ft(p.loyalty_price)}
+    </p>
+  );
+}
+
 export function Stepper({ name, qty, onAdd, onDec }) {
   if (!qty)
     return (
@@ -36,12 +54,14 @@ export function Stepper({ name, qty, onAdd, onDec }) {
 
 export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, extra }) {
   const unit = unitPrice(p.best_unit_price, p.unit);
+  const promo = isPromo(p);
   return (
-    <article className="item">
+    <article className={`item ${promo ? 'on-sale' : ''}`}>
       <button type="button" className="thumb-btn" onClick={onOpen} tabIndex={-1} aria-hidden="true">
         <ProductImage ean={p.ean} />
       </button>
       <div className="item-top">
+        {promo && <SaleTag normal={p.best_normal_price} price={p.best_price} />}
         {extra}
         {!extra && <Trend p={p} />}
         <span className={`chains-tag ${p.chain_count > 1 ? 'multi' : ''}`}>
@@ -59,6 +79,7 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
           {ft(p.best_price)}
           {(p.sel_count ?? p.chain_count) > 1 && <small className="from">-tól</small>}
         </span>
+        {promo && <s className="old">{ft(p.best_normal_price)}</s>}
       </div>
       {unit && (
         <p className="unit">
@@ -70,6 +91,7 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
         <ChainLogo name={chainName(p.best_chain)} size={24} />
         {chainName(p.best_chain)}
       </p>
+      <LoyaltyLine p={p} chainName={chainName} />
       {p.all_best_price != null && p.all_best_price < p.best_price && (
         <p className="meta elsewhere">
           Máshol olcsóbb: <ChainLogo name={chainName(p.all_best_chain)} size={20} />

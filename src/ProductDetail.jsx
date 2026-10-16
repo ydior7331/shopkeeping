@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { chainColor, day, ft, fullDay, packText, unitPrice } from './format.js';
 import { Ico, ICONS } from './Icons.jsx';
-import { Stepper, Trend } from './ProductCard.jsx';
+import { isPromo, LoyaltyLine, SaleTag, Stepper, Trend } from './ProductCard.jsx';
 import ProductImage from './ProductImage.jsx';
 
 function toMs(iso) {
@@ -142,7 +142,12 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
               </div>
             </div>
             <div className="detail-buy">
-              <span className="price">{ft(data.product.best_price)}</span>
+              <span className="price-stack">
+                {isPromo(data.product) && <SaleTag normal={data.product.best_normal_price} price={data.product.best_price} />}
+                <span className={`price ${isPromo(data.product) ? 'is-sale' : ''}`}>{ft(data.product.best_price)}</span>
+                {isPromo(data.product) && <s className="old">{ft(data.product.best_normal_price)}</s>}
+              </span>
+              <LoyaltyLine p={data.product} chainName={chainName} size={22} />
               <Stepper name={data.product.name} qty={qty} onAdd={() => onAdd(data.product)} onDec={() => onDec(data.product)} />
             </div>
           </div>
@@ -167,8 +172,11 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
                       </span>
                     </td>
                     <td>
-                      <strong>{ft(p.min_price)}</strong>
+                      {p.promo === 1 && p.normal_price != null && <span className="sale small">AKCIÓ</span>}
+                      <strong className={p.promo === 1 ? 'sale-price' : ''}>{ft(p.min_price)}</strong>
+                      {p.promo === 1 && p.normal_price != null && <s className="range-old"> {ft(p.normal_price)}</s>}
                       {p.max_price != null && p.max_price !== p.min_price && <span className="range">legfeljebb {ft(p.max_price)}</span>}
+                      {p.loyalty_price != null && <span className="range loyalty-text">Kártyával: {ft(p.loyalty_price)}</span>}
                     </td>
                     <td>{unitPrice(p.min_unit_price, data.product.unit) ?? 'nincs adat'}</td>
                     <td>{p.stores ?? 'nincs adat'}</td>

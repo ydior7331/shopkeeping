@@ -51,6 +51,7 @@ export default function Shop({ meta, onExit }) {
   const [sort, setSort] = useState('auto');
   const [chainSel, setChainSel] = useState(loadChains);
   const [matchAll, setMatchAll] = useState(loadMatchAll);
+  const [promoOnly, setPromoOnly] = useState(false);
   const matchActive = matchAll && chainSel.length > 1;
   const chainKey = useMemo(() => [...chainSel].sort((a, b) => a - b).join(','), [chainSel]);
   const [list, setList] = useState({ items: [], page: 0, hasMore: false, loading: false, error: null });
@@ -113,6 +114,7 @@ export default function Shop({ meta, onExit }) {
       setList(l => ({ ...l, loading: true, error: null, ...(page === 1 ? { items: [] } : {}) }));
       const params = { page, chains: chainKey };
       if (matchActive) params.match = 'all';
+      if (promoOnly) params.promo = '1';
       if (query) params.q = query;
       else if (catId != null) params.cat = catId;
       else params.cats = groupCats;
@@ -132,7 +134,7 @@ export default function Shop({ meta, onExit }) {
           if (e.name !== 'AbortError') setList(l => ({ ...l, loading: false, error: e.message }));
         });
     },
-    [query, catId, groupCats, sort, chainKey, matchActive],
+    [query, catId, groupCats, sort, chainKey, matchActive, promoOnly],
   );
 
   useEffect(() => {
@@ -275,12 +277,20 @@ export default function Shop({ meta, onExit }) {
             </span>
             Csak ami minden kijelölt láncban kapható
           </button>
+          <button type="button" role="switch" aria-checked={promoOnly} className={`switch ${promoOnly ? 'is-on' : ''}`} onClick={() => setPromoOnly(v => !v)}>
+            <span className="switch-track" aria-hidden="true">
+              <span className="switch-thumb" />
+            </span>
+            Csak akciós és kártyás
+          </button>
         </div>
         {chains.length > 0 && <ChainFilter chains={chains} selected={chainSel} onChange={setChainSel} matchAll={matchActive} />}
         {list.error && <p className="notice error">{list.error}</p>}
         {!list.loading && !list.error && list.page > 0 && !list.items.length && (
           <p className="notice">
-            {matchActive
+            {promoOnly
+              ? 'Itt most nincs akciós vagy kártyás termék. Kapcsold ki a szűrést, vagy nézz körül másik kategóriában.'
+              : matchActive
               ? 'Nincs olyan termék, ami mind a kijelölt láncokban kapható. Kapcsold ki a szűrést, vagy jelölj ki kevesebb láncot.'
               : query
                 ? 'Nincs találat. Próbálj rövidebb vagy más keresőszót.'
