@@ -288,3 +288,9 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 @media (prefers-reduced-motion:reduce){
  .basket,.basket.is-open{transition:none}
 }
+.chain-logo{display:inline-block;flex:0 0 auto;vertical-align:middle;border-radius:50%;object-fit:contain}
+.chain-cell{display:inline-flex;align-items:center;gap:8px}
+.meta.best{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{margin-right:2px}
+.chain-chip .chain-logo{margin-left:-2px}

@@ -1,3 +1,4 @@
+import ChainLogo from './ChainLogo.jsx';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { chainColor, day, ft, fullDay, packText, unitPrice } from './format.js';
@@ -92,6 +93,7 @@ function History({ prices, history, lastDay, chainName }) {
         {[...byChain.keys()].map(c => (
           <span key={c}>
             <i style={{ background: chainColor(c) }} />
+            <ChainLogo name={chainName(c)} size={16} />
             {chainName(c)}
           </span>
         ))}
@@ -159,8 +161,10 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
                 {data.prices.map((p, i) => (
                   <tr key={p.chain_id} className={i === 0 ? 'is-best' : ''}>
                     <td>
-                      <i className="dot" style={{ background: chainColor(p.chain_id) }} />
-                      {chainName(p.chain_id)}
+                      <span className="chain-cell">
+                        <ChainLogo name={chainName(p.chain_id)} size={24} />
+                        {chainName(p.chain_id)}
+                      </span>
                     </td>
                     <td>
                       <strong>{ft(p.min_price)}</strong>

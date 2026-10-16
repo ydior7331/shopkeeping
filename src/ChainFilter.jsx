@@ -1,3 +1,4 @@
+import ChainLogo from './ChainLogo.jsx';
 import { chainColor } from './format.js';
 
 export default function ChainFilter({ chains, selected, onChange, matchAll }) {
@@ -29,6 +30,7 @@ export default function ChainFilter({ chains, selected, onChange, matchAll }) {
                   </svg>
                 )}
               </span>
+              <ChainLogo name={c.name} />
               {c.name}
             </button>
           );

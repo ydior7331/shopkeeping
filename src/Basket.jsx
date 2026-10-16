@@ -1,3 +1,4 @@
+import ChainLogo from './ChainLogo.jsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { az, ft } from './format.js';
@@ -136,7 +137,10 @@ export default function Basket({ cart, count, onRemove, onClear, onOpen, msg }) 
             return (
               <div key={s.id} className={`store ${isBest ? 'is-best' : ''} ${full ? '' : 'partial'}`}>
                 <div className="store-row">
-                  <span>{s.name}</span>
+                  <span className="chain-cell">
+                    <ChainLogo name={s.name} />
+                    {s.name}
+                  </span>
                   <span>{ft(s.total)}</span>
                 </div>
                 {full && (

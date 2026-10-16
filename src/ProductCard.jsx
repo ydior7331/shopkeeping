@@ -1,3 +1,4 @@
+import ChainLogo from './ChainLogo.jsx';
 import { day, ft, packText, pct, unitPrice } from './format.js';
 import ProductImage from './ProductImage.jsx';
 
@@ -64,7 +65,10 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
           <span>{unit}</span>
         </p>
       )}
-      <p className="meta best">Legolcsóbb: {chainName(p.best_chain)}</p>
+      <p className="meta best">
+        Legolcsóbb: <ChainLogo name={chainName(p.best_chain)} size={18} />
+        {chainName(p.best_chain)}
+      </p>
       <Stepper name={p.name} qty={qty} onAdd={onAdd} onDec={onDec} />
     </article>
   );
