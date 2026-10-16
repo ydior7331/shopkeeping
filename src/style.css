@@ -236,7 +236,7 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 .chain-filter{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:6px 12px;margin:0 0 16px;padding:10px 12px;border:2px solid #C9D6C5;border-radius:14px;background:#fff}
 .chain-filter-label{font-size:14px;font-weight:600;color:#4B5B52;line-height:34px}
 .chain-chips{display:flex;flex-wrap:wrap;gap:6px}
-.chain-chip{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px 0 9px;border-radius:999px;border:2px solid #C9D6C5;background:#fff;font-size:14px;font-weight:600;color:#13241B}
+.chain-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px 0 9px;border-radius:999px;border:2px solid #C9D6C5;background:#fff;font-size:14px;font-weight:600;color:#13241B}
 .chain-chip:hover{border-color:#13241B}
 .chain-chip:focus-visible{outline:3px solid #8FD3A8;outline-offset:1px}
 .chain-chip.is-on{border-color:#13241B;background:#F2F6F0}

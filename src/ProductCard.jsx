@@ -66,7 +66,7 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
         </p>
       )}
       <p className="meta best">
-        Legolcsóbb: <ChainLogo name={chainName(p.best_chain)} size={18} />
+        Legolcsóbb: <ChainLogo name={chainName(p.best_chain)} size={24} />
         {chainName(p.best_chain)}
       </p>
       <Stepper name={p.name} qty={qty} onAdd={onAdd} onDec={onDec} />

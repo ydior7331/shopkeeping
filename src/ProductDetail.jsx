@@ -93,7 +93,7 @@ function History({ prices, history, lastDay, chainName }) {
         {[...byChain.keys()].map(c => (
           <span key={c}>
             <i style={{ background: chainColor(c) }} />
-            <ChainLogo name={chainName(c)} size={16} />
+            <ChainLogo name={chainName(c)} size={22} />
             {chainName(c)}
           </span>
         ))}
@@ -162,7 +162,7 @@ export default function ProductDetail({ id, chainName, lastDay, qty, onAdd, onDe
                   <tr key={p.chain_id} className={i === 0 ? 'is-best' : ''}>
                     <td>
                       <span className="chain-cell">
-                        <ChainLogo name={chainName(p.chain_id)} size={24} />
+                        <ChainLogo name={chainName(p.chain_id)} size={32} />
                         {chainName(p.chain_id)}
                       </span>
                     </td>

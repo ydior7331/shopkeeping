@@ -11,7 +11,7 @@ function slug(name) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-export default function ChainLogo({ name, size = 20 }) {
+export default function ChainLogo({ name, size = 26 }) {
   const src = LOGOS[slug(name)];
   if (!src) return null;
   return <img className="chain-logo" src={src} alt="" width={size} height={size} aria-hidden="true" />;
