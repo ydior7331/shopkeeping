@@ -66,9 +66,16 @@ export default function ProductCard({ p, chainName, qty, onAdd, onDec, onOpen, e
         </p>
       )}
       <p className="meta best">
-        Legolcsóbb: <ChainLogo name={chainName(p.best_chain)} size={24} />
+        {p.sel_count == null ? 'Legolcsóbb:' : p.sel_count > 1 ? 'Legolcsóbb a kijelöltek közül:' : 'Ár itt:'}
+        <ChainLogo name={chainName(p.best_chain)} size={24} />
         {chainName(p.best_chain)}
       </p>
+      {p.all_best_price != null && p.all_best_price < p.best_price && (
+        <p className="meta elsewhere">
+          Máshol olcsóbb: <ChainLogo name={chainName(p.all_best_chain)} size={20} />
+          {chainName(p.all_best_chain)}, {ft(p.all_best_price)}
+        </p>
+      )}
       <Stepper name={p.name} qty={qty} onAdd={onAdd} onDec={onDec} />
     </article>
   );

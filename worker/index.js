@@ -129,6 +129,8 @@ async function listProducts(env, url) {
           best_unit_price: sel_unit,
           prev_best_price: sel_price === p.best_price ? p.prev_best_price : null,
           sel_count,
+          all_best_price: p.best_price,
+          all_best_chain: p.best_chain,
         }
       : p,
   );

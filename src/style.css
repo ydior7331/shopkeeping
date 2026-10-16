@@ -294,3 +294,4 @@ a{color:#1F7A4C}a:hover{color:#13241B}
 .legend span{display:inline-flex;align-items:center;gap:4px}
 .legend i{margin-right:2px}
 .chain-chip .chain-logo{margin-left:-2px}
+.meta.elsewhere{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#8A2C0B;font-weight:600;background:#FCE3D6;border-radius:8px;padding:4px 8px}
